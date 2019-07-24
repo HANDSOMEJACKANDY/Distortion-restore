@@ -42,7 +42,6 @@ def get_centers(file_path = "./data/input.jpeg", n_rows=10, n_cols=10, verbose=F
 
     # plot theses circles to make sure the sequence is correct
     gaussian_img = cv2.GaussianBlur(cv2.cvtColor(cimg, cv2.COLOR_BGR2GRAY), (5, 5), 0)
-    print("show the circles found")
     for c in range(10):
         for r in range(10):
             pos = grid[r, c, :2].astype(np.int)
@@ -64,25 +63,25 @@ def get_centers(file_path = "./data/input.jpeg", n_rows=10, n_cols=10, verbose=F
 
     return grid
 
-def recenter_grid(grid):
-    center_of_centers = grid.mean(axis=0).mean(axis=0).reshape((1, 1, 3))
-    center_of_centers[:, :, 2] = 0
-    recentered_grid = grid - center_of_centers
-    return recentered_grid
+# def recenter_grid(grid):
+#     center_of_centers = grid.mean(axis=0).mean(axis=0).reshape((1, 1, 3))
+#     center_of_centers[:, :, 2] = 0
+#     recentered_grid = grid - center_of_centers
+#     return recentered_grid
 
-def normalize_grid(grid):
-    # get the recentered data set
-    grid = recenter_grid(grid)
-
-    # scale the intensity to range from 0 - 255 to 0 - 1
-    grid[:, :, 2] = grid[:, :, 2] / 255
-
-    # scale the positions such that the 0, 0 point and 9, 9 point have distance of 1
-    vec = grid[0, 0, :2] - grid[-1, -1, :2]
-    length = np.linalg.norm(vec, ord=2)
-    grid[:, :, :2] = grid[:, :, :2] / length
-
-    return grid
+# def normalize_grid(grid):
+#     # get the recentered data set
+#     grid = recenter_grid(grid)
+#
+#     # scale the intensity to range from 0 - 255 to 0 - 1
+#     grid[:, :, 2] = grid[:, :, 2] / 255
+#
+#     # scale the positions such that the 0, 0 point and 9, 9 point have distance of 1
+#     vec = grid[0, 0, :2] - grid[-1, -1, :2]
+#     length = np.linalg.norm(vec, ord=2)
+#     grid[:, :, :2] = grid[:, :, :2] / length
+#
+#     return grid
 
 if __name__ == "__main__":
     n_cols = 10
@@ -92,18 +91,9 @@ if __name__ == "__main__":
     input_grid = get_centers(file_path="./data/input.jpeg", n_cols=n_cols, n_rows=n_rows, verbose=False, hough_thresh=20, minDist=20, maxRadius=20)
     output_grid = get_centers(file_path="./data/output.jpeg", n_cols=n_cols, n_rows=n_rows, verbose=False, hough_thresh=10, minDist=50, maxRadius=40)
 
-    # normalize the positions
-    input_grid = normalize_grid(input_grid)
-    output_grid = normalize_grid(output_grid)
-
     # construct the input and output of the function learning
-    x = np.zeros((n_cols * n_rows, 3))
-    y = np.zeros((n_cols * n_rows, 3))
-    for r in range(n_rows):
-        for c in range(n_cols):
-            # since we are trying to learn the inverse projection, we set output_grid to x, but input_grid to y
-            x[r * n_cols + c, :] = output_grid[r, c, :]
-            y[r * n_cols + c, :] = input_grid[r, c, :]
+    x = output_grid
+    y = input_grid
     np.savez("./data/train_data.npz", x=x, y=y)
 
 
