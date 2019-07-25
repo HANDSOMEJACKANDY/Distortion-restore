@@ -2,6 +2,7 @@ import numpy as np
 from keras.layers import Input, Dense
 from keras.models import Model
 from keras.optimizers import SGD, Adam
+import sys
 
 class Distortion:
     def __init__(self, file_path="./data/train_data.npz"):
@@ -47,6 +48,9 @@ class Distortion:
         self.positive_train_data["intensity_error"] = np.square(self.positive_train_data["intensity_ratio"] - self.positive_train_data["intensity_ratio"].mean()).mean()
         print("baseline position transformation mse error is:  ", self.positive_train_data["pos_error"])
         print("baseline intensity transformation mse error is: ", self.positive_train_data["intensity_error"])
+
+        # create position model
+        self.create_model()
 
     def norm_pos_arr(self, pos_arr, pos_type="x"):
         return (pos_arr - self.geometry_data[pos_type]["center"]) / self.geometry_data[pos_type]["scale"]
@@ -109,22 +113,32 @@ class Distortion:
 
         return output
 
+    def create_model(self):
+        # formulate position model
+        pos_input = Input(shape=(2,))
+        intermediate_embedding = Dense(units=100, activation="tanh", use_bias=True)(pos_input)
+        pos_output = Dense(units=2, activation="tanh", use_bias=True)(intermediate_embedding)
+        self.model = Model(inputs=[pos_input], outputs=[pos_output])
+        optimiser = Adam(lr=0.001)
+        self.model.compile(optimizer=optimiser, loss='mse')
 
+    def train_model(self, iteration=100000):
+        # prepare train data
+        train_data = distortion.generate_regularized_pos_training_data(validation_split=0.1, reg_sample_ratio=0.1, reg_rate=0)
+
+        # start training
+        for i in range(iteration):
+            train_loss = self.model.train_on_batch(train_data["train_samples"][0], train_data["train_samples"][1], sample_weight=train_data["sample_weights"])
+            validation_loss = self.model.test_on_batch(train_data["validation_samples"][0], train_data["validation_samples"][1])
+            random_points = distortion.generate_points("x", n=1000, norm=True)
+            deviation_from_identity = self.model.test_on_batch(random_points, random_points)
+            if i % 100 == 0:
+                sys.stdout.write(
+                    "\rtraining iter no. {0}, training_loss: {1}, val_loss: {2}, deviation_from_identity: {3}".
+                    format(i, train_loss, validation_loss, deviation_from_identity / distortion.positive_train_data["pos_error"]))
+                sys.stdout.flush()
 
 if __name__ == "__main__":
     # get data
     distortion = Distortion()
-    train_data = distortion.generate_regularized_pos_training_data(validation_split=0.1, reg_sample_ratio=10, reg_rate=0.1)
-    input()
-
-    # formulate position model
-    pos_input = Input(shape=(2,))
-    intermediate_embedding = Dense(units=100, activation="tanh", use_bias=True)(pos_input)
-    pos_output = Dense(units=2, activation="tanh", use_bias=True)(intermediate_embedding)
-    model = Model(inputs=[pos_input], outputs=[pos_output])
-    optimiser = Adam(lr=0.001)
-    model.compile(optimizer=optimiser, loss='mse')
-
-    model.fit(x=train_data["train_samples"][0], y=train_data["train_samples"][1], validation_data=train_data["validation_samples"], \
-              sample_weight=train_data["sample_weights"], shuffle=True, epochs=100000, batch_size=990, verbose=1)
-
+    distortion.train_model()
