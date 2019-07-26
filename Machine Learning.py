@@ -1,14 +1,16 @@
 import numpy as np
+import pickle
 from keras.layers import Input, Dense
 from keras.models import Model
 from keras.optimizers import SGD, Adam
 import sys
 
 class Distortion:
-    def __init__(self, file_path="./data/train_data.npz"):
+    def __init__(self, file_path="./data"):
         # load training point data
         self.original_data = {}
-        saved_data = np.load("./data/train_data.npz")
+        self.file_path = file_path
+        saved_data = np.load(self.file_path + "/train_data.npz")
         self.original_data["original_x"] = saved_data["x"]
         self.original_data["original_y"] = saved_data["y"]
 
@@ -62,6 +64,9 @@ class Distortion:
         return y_arr
 
     def generate_points(self, pos_type="x", delta=0.05, n=100, norm=True):
+        '''
+        The reg training sample is useless when the learning speed is low enough
+        '''
         # get tolerance going across the bound
         delta_x = (self.geometry_data[pos_type]["boundary"][1][0] - self.geometry_data[pos_type]["boundary"][0][0]) * delta
         delta_y = (self.geometry_data[pos_type]["boundary"][1][1] - self.geometry_data[pos_type]["boundary"][0][1]) * delta
@@ -119,26 +124,48 @@ class Distortion:
         intermediate_embedding = Dense(units=100, activation="tanh", use_bias=True)(pos_input)
         pos_output = Dense(units=2, activation="tanh", use_bias=True)(intermediate_embedding)
         self.model = Model(inputs=[pos_input], outputs=[pos_output])
-        optimiser = Adam(lr=0.001)
+
+    def train_model(self, iteration=200000, reg_rate=0, lr=0.00001):
+        # prepare optimiser
+        optimiser = Adam(lr=lr)
         self.model.compile(optimizer=optimiser, loss='mse')
 
-    def train_model(self, iteration=100000):
         # prepare train data
-        train_data = distortion.generate_regularized_pos_training_data(validation_split=0.1, reg_sample_ratio=0.1, reg_rate=0)
+        if reg_rate == 0:
+            train_data = self.generate_regularized_pos_training_data(validation_split=0.1, reg_sample_ratio=10, reg_rate=reg_rate)
+        else:
+            train_data = self.generate_regularized_pos_training_data(validation_split=0.1, reg_sample_ratio=10, reg_rate=reg_rate)
 
         # start training
         for i in range(iteration):
             train_loss = self.model.train_on_batch(train_data["train_samples"][0], train_data["train_samples"][1], sample_weight=train_data["sample_weights"])
             validation_loss = self.model.test_on_batch(train_data["validation_samples"][0], train_data["validation_samples"][1])
-            random_points = distortion.generate_points("x", n=1000, norm=True)
+            random_points = self.generate_points("x", n=1000, norm=True)
             deviation_from_identity = self.model.test_on_batch(random_points, random_points)
             if i % 100 == 0:
                 sys.stdout.write(
                     "\rtraining iter no. {0}, training_loss: {1}, val_loss: {2}, deviation_from_identity: {3}".
-                    format(i, train_loss, validation_loss, deviation_from_identity / distortion.positive_train_data["pos_error"]))
+                    format(i, train_loss, validation_loss, deviation_from_identity / self.positive_train_data["pos_error"]))
                 sys.stdout.flush()
+        print("\ntraining finish")
+
+    def save_param(self):
+        # save the pos model
+        self.model.save(self.file_path + "/pos_model.h5")
+
+        # save transformation param
+        with open(self.file_path + "/geometry_data.pkl", "wb") as g_file:
+            pickle.dump(self.geometry_data, g_file)
+
+
 
 if __name__ == "__main__":
     # get data
     distortion = Distortion()
-    distortion.train_model()
+    distortion.train_model(reg_rate=0, iteration=200000, lr=0.00001)
+    distortion.save_param()
+
+    # d = {}
+    # with open("./data/geometry_data.pkl", "rb") as f:
+    #     d = pickle.load(f)
+    #     print(d)
