@@ -16,21 +16,23 @@ The task is simple: restore the image from ./data/output.jpeg to ./data/input.jp
 1. circles are located using opencv's hough find circle method
 2. the points are normalized by recentering, and rescaling.
 3. the NN has structure as follows:
-1) (x, y) normalized position input
-2) 100 units dense hidden layer with relu activation
-3) (x', y') position output, from tanh activation
+* (x, y) normalized position input
+* 100 units dense hidden layer with relu activation
+* (x', y') position output, from tanh activation
 
 ## Result:
 The performance is decent given a badly taken output.jpeg, and limited training pairs.
 
 __From the original ./data/output.jpeg:__
-
-![Alt text](data/output.jpeg?raw=true "Original Output Image")
+<p align="center">
+ <img src="data/output.jpeg" width="400">
+</p>
 
 __we get a restored input image:__
-
-![Alt text](data/transformed_image.png?raw=true "Restored Input Image")
-
+<p align="center">
+ <img src="data/transformed_image.png" width="400">
+</p>
 __As compared to actual input image:__
-
-![Alt text](data/input.jpeg?raw=true "Original Input Image")
+<p align="center">
+ <img src="data/input.jpeg" width="400">
+</p>
