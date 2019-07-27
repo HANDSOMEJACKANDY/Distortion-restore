@@ -63,26 +63,6 @@ def get_centers(file_path = "./data/input.jpeg", n_rows=10, n_cols=10, verbose=F
 
     return grid
 
-# def recenter_grid(grid):
-#     center_of_centers = grid.mean(axis=0).mean(axis=0).reshape((1, 1, 3))
-#     center_of_centers[:, :, 2] = 0
-#     recentered_grid = grid - center_of_centers
-#     return recentered_grid
-
-# def normalize_grid(grid):
-#     # get the recentered data set
-#     grid = recenter_grid(grid)
-#
-#     # scale the intensity to range from 0 - 255 to 0 - 1
-#     grid[:, :, 2] = grid[:, :, 2] / 255
-#
-#     # scale the positions such that the 0, 0 point and 9, 9 point have distance of 1
-#     vec = grid[0, 0, :2] - grid[-1, -1, :2]
-#     length = np.linalg.norm(vec, ord=2)
-#     grid[:, :, :2] = grid[:, :, :2] / length
-#
-#     return grid
-
 if __name__ == "__main__":
     n_cols = 10
     n_rows = 10

@@ -57,12 +57,6 @@ class Distortion:
     def norm_pos_arr(self, pos_arr, pos_type="x"):
         return (pos_arr - self.geometry_data[pos_type]["center"]) / self.geometry_data[pos_type]["scale"]
 
-    def transform_pos_x2y(self, x_arr, model):
-        model_input = (x_arr - self.geometry_data["x"]["center"] ) / self.geometry_data["x"]["scale"]
-        model_output = model_input
-        y_arr = (model_output + self.geometry_data["y"]["center"]) * self.geometry_data["y"]["scale"]
-        return y_arr
-
     def generate_points(self, pos_type="x", delta=0.05, n=100, norm=True):
         '''
         The reg training sample is useless when the learning speed is low enough
@@ -164,8 +158,3 @@ if __name__ == "__main__":
     distortion = Distortion()
     distortion.train_model(reg_rate=0, iteration=200000, lr=0.00001)
     distortion.save_param()
-
-    # d = {}
-    # with open("./data/geometry_data.pkl", "rb") as f:
-    #     d = pickle.load(f)
-    #     print(d)
