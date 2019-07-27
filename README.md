@@ -32,6 +32,7 @@ __we get a restored input image:__
 <p align="center">
  <img src="data/transformed_image.png" width="400">
 </p>
+
 __As compared to actual input image:__
 <p align="center">
  <img src="data/input.jpeg" width="400">
